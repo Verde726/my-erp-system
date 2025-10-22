@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill:*)",
+      "Bash(cat:*)",
+      "Bash(npm install)",
+      "Bash(npx prisma generate:*)",
+      "Bash(if [ ! -f .env ])",
+      "Bash(then cp .env.example .env)",
+      "Bash(else echo \".env file already exists\")",
+      "Bash(fi)",
+      "Bash(npx prisma format:*)",
+      "Bash(npx prisma validate:*)",
+      "Bash(awk:*)",
+      "Bash(if [ -f models/index.ts ])",
+      "Bash(then mv models/index.ts models/index.ts.old)",
+      "Bash(else echo \"No old models/index.ts to back up\")",
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)",
+      "Bash(npx shadcn@latest add tabs --yes)",
+      "Bash(npm run build:*)",
+      "Bash(npx shadcn@latest add alert:*)",
+      "Bash(npx shadcn@latest add avatar:*)",
+      "Bash(npx shadcn@latest add separator --yes)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx shadcn@latest add progress --yes)",
+      "Bash(npm install:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

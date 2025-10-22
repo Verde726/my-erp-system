@@ -1,0 +1,55 @@
+import { z } from "zod"
+
+// User schema
+export const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().optional(),
+  role: z.string().default("user"),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type User = z.infer<typeof UserSchema>
+
+// Customer schema
+export const CustomerSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type Customer = z.infer<typeof CustomerSchema>
+
+// Product schema
+export const ProductSchema = z.object({
+  id: z.string(),
+  sku: z.string().min(1, "SKU is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  unitPrice: z.number().positive("Price must be positive"),
+  category: z.string().optional(),
+  stockLevel: z.number().int().nonnegative("Stock level cannot be negative"),
+  reorderPoint: z.number().int().nonnegative("Reorder point cannot be negative"),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type Product = z.infer<typeof ProductSchema>
+
+// Supplier schema
+export const SupplierSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type Supplier = z.infer<typeof SupplierSchema>

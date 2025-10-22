@@ -1,0 +1,302 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// BILL OF MATERIALS (BOM) - Raw Materials & Components
+// ============================================================================
+
+model BomItem {
+  id              String   @id @default(cuid())
+  partNumber      String   @unique
+  description     String
+  quantityPerUnit Float
+  currentStock    Float
+  unitCost        Float
+  supplier        String
+  reorderPoint    Float
+  leadTimeDays    Int
+  category        String
+  safetyStock     Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  productBoms  ProductBom[]
+  materialReqs MaterialRequirement[]
+  movements    InventoryMovement[]
+
+  @@index([category])
+  @@index([currentStock, reorderPoint])
+}
+
+// ============================================================================
+// PRODUCTS - Finished Goods
+// ============================================================================
+
+model Product {
+  id           String   @id @default(cuid())
+  sku          String   @unique
+  name         String
+  description  String?
+  category     String
+  targetMargin Float    @default(0.3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  bom         ProductBom[]
+  salesOrders SalesOrder[]
+  schedules   ProductionSchedule[]
+  throughput  ThroughputData[]
+
+  @@index([category])
+}
+
+// ============================================================================
+// PRODUCT BOM - Many-to-Many mapping between Products and BOM Items
+// ============================================================================
+
+model ProductBom {
+  id             String @id @default(cuid())
+  productId      String
+  partNumber     String
+  quantityNeeded Float
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bomItem BomItem @relation(fields: [partNumber], references: [partNumber], onDelete: Cascade)
+
+  @@unique([productId, partNumber])
+  @@index([productId])
+  @@index([partNumber])
+}
+
+// ============================================================================
+// SALES ORDERS - Sales Forecasts & Customer Orders
+// ============================================================================
+
+model SalesOrder {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  productId       String
+  forecastedUnits Float
+  timePeriod      DateTime
+  priority        Priority @default(medium)
+  customerSegment String?
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([timePeriod])
+  @@index([priority, status])
+}
+
+enum Priority {
+  high
+  medium
+  low
+}
+
+// ============================================================================
+// PRODUCTION SCHEDULE - Production Planning & Execution
+// ============================================================================
+
+model ProductionSchedule {
+  id                   String   @id @default(cuid())
+  scheduleId           String   @unique
+  productId            String
+  unitsToProducePerDay Float
+  startDate            DateTime
+  endDate              DateTime
+  workstationId        String
+  shiftNumber          Int
+  status               String   @default("planned")
+  actualUnitsProduced  Float?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  product      Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  materialReqs MaterialRequirement[]
+
+  @@index([productId])
+  @@index([startDate, endDate])
+  @@index([workstationId, shiftNumber])
+  @@index([status])
+}
+
+// ============================================================================
+// MATERIAL REQUIREMENTS - MRP Calculations & Allocation
+// ============================================================================
+
+model MaterialRequirement {
+  id                String   @id @default(cuid())
+  scheduleId        String
+  partNumber        String
+  requiredQuantity  Float
+  allocatedQuantity Float    @default(0)
+  status            String   @default("pending")
+  createdAt         DateTime @default(now())
+
+  // Relations
+  schedule ProductionSchedule @relation(fields: [scheduleId], references: [scheduleId], onDelete: Cascade)
+  bomItem  BomItem            @relation(fields: [partNumber], references: [partNumber], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([partNumber])
+  @@index([status])
+}
+
+// ============================================================================
+// THROUGHPUT DATA - Historical Production Performance
+// ============================================================================
+
+model ThroughputData {
+  id            String   @id @default(cuid())
+  date          DateTime
+  productId     String
+  unitsProduced Float
+  hoursWorked   Float
+  defectRate    Float
+  workstationId String
+  efficiency    Float
+  createdAt     DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([date, productId])
+  @@index([workstationId])
+}
+
+// ============================================================================
+// INVENTORY MOVEMENT - Audit Trail for Stock Changes
+// ============================================================================
+
+model InventoryMovement {
+  id            String       @id @default(cuid())
+  partNumber    String
+  movementType  MovementType
+  quantity      Float
+  reference     String?
+  reason        String?
+  previousStock Float
+  newStock      Float
+  timestamp     DateTime     @default(now())
+
+  // Relations
+  bomItem BomItem @relation(fields: [partNumber], references: [partNumber], onDelete: Cascade)
+
+  @@index([partNumber, timestamp])
+  @@index([movementType])
+  @@index([timestamp])
+}
+
+enum MovementType {
+  in
+  out
+  adjustment
+}
+
+// ============================================================================
+// FINANCIAL METRICS - Daily Financial Snapshots
+// ============================================================================
+
+model FinancialMetrics {
+  id                  String   @id @default(cuid())
+  date                DateTime @unique
+  totalInventoryValue Float
+  wipValue            Float
+  finishedGoodsValue  Float
+  totalMaterialCost   Float
+  productionCostEst   Float
+  createdAt           DateTime @default(now())
+
+  @@index([date])
+}
+
+// ============================================================================
+// ALERTS - System Notifications & Warnings
+// ============================================================================
+
+model Alert {
+  id              String    @id @default(cuid())
+  alertType       AlertType
+  severity        Severity
+  title           String
+  description     String
+  reference       String?
+  status          String    @default("active")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  resolvedAt      DateTime?
+  resolution      String?
+  resolvedBy      String?
+  dismissedAt     DateTime?
+  dismissalReason String?
+
+  @@index([status, createdAt])
+  @@index([alertType, severity])
+  @@index([reference])
+}
+
+enum AlertType {
+  shortage
+  reorder
+  schedule_conflict
+  cost_overrun
+  capacity_warning
+  quality_issue
+  delivery_risk
+}
+
+enum Severity {
+  critical
+  warning
+  info
+}
+
+// ============================================================================
+// LEGACY MODELS (from original schema)
+// ============================================================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
