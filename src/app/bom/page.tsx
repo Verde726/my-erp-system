@@ -12,6 +12,7 @@ import { BomTable } from '@/components/bom/BomTable'
 import { BomDetailDrawer } from '@/components/bom/BomDetailDrawer'
 import { UploadModal } from '@/components/bom/UploadModal'
 import { StockAdjustmentModal } from '@/components/bom/StockAdjustmentModal'
+import { EditItemModal } from '@/components/bom/EditItemModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -50,6 +51,7 @@ export default function BomPage() {
   const [selectedItem, setSelectedItem] = useState<BomItem | null>(null)
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false)
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   // Fetch data
   const { data, isLoading } = useBomList({
@@ -71,8 +73,7 @@ export default function BomPage() {
 
   const handleEdit = (item: BomItem) => {
     setSelectedItem(item)
-    // TODO: Implement edit modal
-    console.log('Edit item:', item)
+    setEditModalOpen(true)
   }
 
   const handleAdjustStock = () => {
@@ -367,6 +368,15 @@ export default function BomPage() {
 
       {/* Modals */}
       <UploadModal open={uploadModalOpen} onClose={() => setUploadModalOpen(false)} />
+
+      <EditItemModal
+        item={selectedItem}
+        open={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false)
+          setSelectedItem(null)
+        }}
+      />
 
       <BomDetailDrawer
         itemId={selectedItem?.id || null}

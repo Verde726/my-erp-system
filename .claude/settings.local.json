@@ -30,7 +30,10 @@
       "Bash(npx prisma migrate:*)",
       "Bash(npx prisma studio:*)",
       "Bash(timeout:*)",
-      "Bash(npm run test:run:*)"
+      "Bash(npm run test:run:*)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
