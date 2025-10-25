@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
 import { exportInventoryReport, exportProductionReport, exportFinancialReport } from '@/lib/exporters/pdf-exporter'
 import { exportToCSV, BOM_INVENTORY_COLUMNS, PRODUCTION_SCHEDULE_COLUMNS, FINANCIAL_METRICS_COLUMNS } from '@/lib/exporters/csv-exporter'
 import { exportToExcel } from '@/lib/exporters/excel-exporter'

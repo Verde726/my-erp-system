@@ -162,7 +162,10 @@ export function FinancialDashboard() {
   const totalMaterialCost = snapshot?.data?.totalMaterialCost ?? 0
   const productionCostEst = snapshot?.data?.productionCostEst ?? 0
 
-  const inventoryByCategory = inventoryData?.data?.inventory?.byCategory ?? []
+  // Ensure inventoryByCategory is always an array
+  const rawInventoryByCategory = inventoryData?.data?.inventory?.byCategory
+  const inventoryByCategory = Array.isArray(rawInventoryByCategory) ? rawInventoryByCategory : []
+
   const lowStockValue = inventoryData?.data?.inventory?.lowStockValue ?? 0
   const lowStockCount = inventoryData?.data?.inventory?.lowStockCount ?? 0
   const healthyStockValue = inventoryData?.data?.inventory?.healthyStockValue ?? 0
@@ -263,19 +266,25 @@ export function FinancialDashboard() {
                 <CardTitle>Category Details</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {inventoryByCategory.map((cat, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{cat.category}</span>
-                      <div className="text-right">
-                        <div className="text-sm font-bold">{formatCurrency(cat.value)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {cat.itemCount} items
+                {inventoryByCategory.length === 0 ? (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No category data available
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {inventoryByCategory.map((cat, index) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{cat.category}</span>
+                        <div className="text-right">
+                          <div className="text-sm font-bold">{formatCurrency(cat.value)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {cat.itemCount} items
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -24,7 +24,13 @@
       "Bash(npx shadcn@latest add separator --yes)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(npx shadcn@latest add progress --yes)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run db:seed:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma studio:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run test:run:*)"
     ],
     "deny": [],
     "ask": []

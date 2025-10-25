@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -90,7 +90,7 @@ model SalesOrder {
   productId       String
   forecastedUnits Float
   timePeriod      DateTime
-  priority        Priority @default(medium)
+  priority        String @default("medium") // high, medium, low
   customerSegment String?
   status          String   @default("pending")
   createdAt       DateTime @default(now())
@@ -103,11 +103,8 @@ model SalesOrder {
   @@index([priority, status])
 }
 
-enum Priority {
-  high
-  medium
-  low
-}
+// Priority values: high, medium, low
+// Stored as String for SQLite compatibility
 
 // ============================================================================
 // PRODUCTION SCHEDULE - Production Planning & Execution
@@ -188,7 +185,7 @@ model ThroughputData {
 model InventoryMovement {
   id            String       @id @default(cuid())
   partNumber    String
-  movementType  MovementType
+  movementType  String // in, out, adjustment
   quantity      Float
   reference     String?
   reason        String?
@@ -204,11 +201,8 @@ model InventoryMovement {
   @@index([timestamp])
 }
 
-enum MovementType {
-  in
-  out
-  adjustment
-}
+// MovementType values: in, out, adjustment
+// Stored as String for SQLite compatibility
 
 // ============================================================================
 // FINANCIAL METRICS - Daily Financial Snapshots
@@ -233,8 +227,8 @@ model FinancialMetrics {
 
 model Alert {
   id              String    @id @default(cuid())
-  alertType       AlertType
-  severity        Severity
+  alertType       String // shortage, reorder, schedule_conflict, cost_overrun, capacity_warning, quality_issue, delivery_risk
+  severity        String // critical, warning, info
   title           String
   description     String
   reference       String?
@@ -252,21 +246,9 @@ model Alert {
   @@index([reference])
 }
 
-enum AlertType {
-  shortage
-  reorder
-  schedule_conflict
-  cost_overrun
-  capacity_warning
-  quality_issue
-  delivery_risk
-}
-
-enum Severity {
-  critical
-  warning
-  info
-}
+// AlertType values: shortage, reorder, schedule_conflict, cost_overrun, capacity_warning, quality_issue, delivery_risk
+// Severity values: critical, warning, info
+// Stored as String for SQLite compatibility
 
 // ============================================================================
 // LEGACY MODELS (from original schema)
