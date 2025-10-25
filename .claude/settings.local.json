@@ -33,7 +33,9 @@
       "Bash(npm run test:run:*)",
       "Bash(npm run lint)",
       "Bash(npx eslint:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []
