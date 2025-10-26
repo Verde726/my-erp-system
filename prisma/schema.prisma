@@ -37,6 +37,8 @@ model BomItem {
   @@index([category])
   @@index([currentStock, reorderPoint])
   @@index([supplier])
+  @@index([updatedAt]) // Performance: sorting by recently updated
+  @@index([category, currentStock]) // Performance: filtered category queries
 }
 
 // ============================================================================

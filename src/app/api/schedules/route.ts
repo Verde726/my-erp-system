@@ -46,9 +46,22 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // Optimized query with selective fields to reduce data transfer
     const schedules = await prisma.productionSchedule.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        scheduleId: true,
+        productId: true,
+        unitsToProducePerDay: true,
+        startDate: true,
+        endDate: true,
+        workstationId: true,
+        shiftNumber: true,
+        status: true,
+        actualUnitsProduced: true,
+        createdAt: true,
+        updatedAt: true,
         product: {
           select: {
             id: true,
@@ -58,13 +71,23 @@ export async function GET(request: NextRequest) {
           },
         },
         materialReqs: {
-          include: {
+          select: {
+            id: true,
+            requiredQuantity: true,
+            allocatedQuantity: true,
+            status: true,
             bomItem: {
               select: {
                 partNumber: true,
                 description: true,
+                currentStock: true,
               },
             },
+          },
+        },
+        _count: {
+          select: {
+            materialReqs: true,
           },
         },
       },

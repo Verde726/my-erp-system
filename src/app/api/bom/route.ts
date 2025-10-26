@@ -1,10 +1,17 @@
 /**
  * BOM API Routes
  * GET /api/bom - Fetch all BOM items with filtering and pagination
+ *
+ * Performance Optimizations:
+ * - Uses database aggregations instead of fetching all items
+ * - Implements caching for frequently accessed data
+ * - Parallel query execution
+ * - Selective field selection
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { cache, cacheKeys } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,8 +67,19 @@ export async function GET(request: NextRequest) {
     // Calculate pagination
     const skip = (page - 1) * limit
 
-    // Fetch data
-    const [items, totalCount] = await Promise.all([
+    // Build cache key based on query parameters
+    const filterKey = `${search}-${category}-${supplier}-${status}`
+    const cacheKey = cacheKeys.bomList(page, limit, filterKey)
+
+    // Try to get summary stats from cache
+    const cachedSummary = cache.get<{
+      totalInventoryValue: number
+      itemsBelowReorder: number
+      totalItems: number
+    }>(cacheKeys.bomSummary())
+
+    // Fetch data with optimized queries - use aggregations instead of fetching all items
+    const [items, totalCount, summaryStats] = await Promise.all([
       prisma.bomItem.findMany({
         where,
         orderBy: {
@@ -79,25 +97,36 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.bomItem.count({ where }),
+      // Fetch summary only if not cached
+      cachedSummary
+        ? Promise.resolve(cachedSummary)
+        : Promise.all([
+            // Use aggregation for total inventory value (much faster than fetching all items)
+            prisma.$queryRaw<Array<{ total: number; count: number }>>`
+              SELECT
+                CAST(SUM(currentStock * unitCost) AS REAL) as total,
+                CAST(COUNT(*) AS INTEGER) as count
+              FROM BomItem
+            `,
+            // Count items below reorder point efficiently
+            prisma.$queryRaw<Array<{ count: number }>>`
+              SELECT CAST(COUNT(*) AS INTEGER) as count
+              FROM BomItem
+              WHERE currentStock <= reorderPoint
+            `,
+          ]).then(([inventoryStats, lowStockStats]) => {
+            const summary = {
+              totalInventoryValue: inventoryStats[0]?.total || 0,
+              itemsBelowReorder: lowStockStats[0]?.count || 0,
+              totalItems: inventoryStats[0]?.count || 0,
+            }
+            // Cache for 1 minute
+            cache.set(cacheKeys.bomSummary(), summary)
+            return summary
+          }),
     ])
 
-    // Calculate summary statistics
-    const allItems = await prisma.bomItem.findMany({
-      select: {
-        currentStock: true,
-        unitCost: true,
-        reorderPoint: true,
-      },
-    })
-
-    const totalInventoryValue = allItems.reduce(
-      (sum, item) => sum + item.currentStock * item.unitCost,
-      0
-    )
-
-    const itemsBelowReorder = allItems.filter(
-      (item) => item.currentStock <= item.reorderPoint
-    ).length
+    const { totalInventoryValue, itemsBelowReorder, totalItems } = summaryStats
 
     // Add calculated fields to items
     const itemsWithStatus = items.map((item) => {
@@ -121,7 +150,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       items: itemsWithStatus,
       pagination: {
         page,
@@ -132,9 +161,14 @@ export async function GET(request: NextRequest) {
       summary: {
         totalInventoryValue,
         itemsBelowReorder,
-        totalItems: allItems.length,
+        totalItems,
       },
     })
+
+    // Add cache headers for better performance (30 seconds client cache, 60 seconds CDN cache)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30')
+
+    return response
   } catch (error) {
     console.error('Error fetching BOM items:', error)
     return NextResponse.json(
